@@ -1,0 +1,67 @@
+export type Suit = 'S' | 'H' | 'D' | 'C';
+
+export interface Card {
+  r: number;
+  s: Suit;
+  id: string;
+}
+
+export type Role = 'president' | 'vice-president' | 'burger' | 'vice-foet' | 'foet';
+export type Phase = 'exchange' | 'playing' | 'roundEnd';
+
+export interface PlayerView {
+  id: string;
+  name: string;
+  isBot: boolean;
+  connected: boolean;
+  cardCount: number;
+  role: Role | null;
+  passed: boolean;
+  finishPos: number | null;
+  mustReturn: number;
+  wins: number;
+}
+
+export interface GameView {
+  phase: Phase;
+  roundNumber: number;
+  players: PlayerView[];
+  you: number;
+  hand: Card[];
+  turn: number;
+  trick: { by: number; cards: Card[] }[];
+  mustReturn: number;
+  received: Card[];
+  gave: Card[];
+  finishOrder: number[];
+  lastEvent: string;
+}
+
+export interface SeatView {
+  id: string;
+  name: string;
+  isBot: boolean;
+  connected: boolean;
+}
+
+export interface RoomView {
+  code: string;
+  youAreHost: boolean;
+  seats: SeatView[];
+  game: GameView | null;
+}
+
+export const ROLE_LABELS: Record<Role, string> = {
+  president: 'President',
+  'vice-president': 'Vice-president',
+  burger: 'Burger',
+  'vice-foet': 'Vice-foet',
+  foet: 'Foet',
+};
+
+export function rankLabel(r: number): string {
+  if (r <= 10) return String(r);
+  return ({ 11: 'B', 12: 'V', 13: 'H', 14: 'A', 15: '2' } as Record<number, string>)[r];
+}
+
+export const SUIT_SYMBOLS: Record<Suit, string> = { S: '♠', H: '♥', D: '♦', C: '♣' };

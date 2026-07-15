@@ -1,0 +1,408 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --felt: #1d6b3c;
+  --felt-dark: #14522c;
+  --gold: #f0c869;
+  --card-w: 58px;
+  --card-h: 84px;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);
+  color: #fff;
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #b3372f;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- Lobby ---------- */
+.lobby {
+  max-width: 380px;
+  margin: 8vh auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.lobby h1 {
+  font-size: 2.4rem;
+  color: var(--gold);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.suits {
+  font-size: 1.6rem;
+  color: #fff;
+}
+
+.tagline {
+  opacity: 0.85;
+}
+
+.input {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  width: 100%;
+  text-align: center;
+}
+
+.btn {
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #ffffff22;
+  color: #fff;
+  transition: background 0.15s, transform 0.05s;
+}
+
+.btn:hover:not(:disabled) {
+  background: #ffffff36;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--gold);
+  color: #3a2c00;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: #ffd97e;
+}
+
+.btn.subtle {
+  background: transparent;
+  opacity: 0.7;
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.divider {
+  opacity: 0.6;
+  font-size: 0.9rem;
+}
+
+.join-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.join-row .input {
+  width: 140px;
+}
+
+.seat-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #00000026;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 1.05rem;
+}
+
+.hint {
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+/* ---------- Game ---------- */
+.game {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.opponents {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.seat {
+  background: #00000030;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 130px;
+  text-align: center;
+}
+
+.seat.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px #f0c86966;
+}
+
+.seat.done {
+  opacity: 0.65;
+}
+
+.seat-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.seat-info {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.role {
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  background: #ffffff2c;
+}
+
+.role-president {
+  background: var(--gold);
+  color: #3a2c00;
+}
+
+.role-foet {
+  background: #8b5e34;
+}
+
+.passed {
+  color: #ffb3ab;
+  font-style: italic;
+}
+
+.finished {
+  color: var(--gold);
+}
+
+.table-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  background: #00000018;
+  border-radius: 16px;
+  border: 2px dashed #ffffff22;
+  padding: 12px;
+}
+
+.pile-empty {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.trick {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.trick-play {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.5;
+  transform: scale(0.85);
+}
+
+.trick-play.top {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.trick-cards {
+  display: flex;
+  gap: 4px;
+}
+
+.trick-by {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.status {
+  text-align: center;
+  padding: 10px;
+  font-size: 1.05rem;
+  min-height: 42px;
+}
+
+.received {
+  text-align: center;
+  color: var(--gold);
+  padding-bottom: 6px;
+}
+
+/* ---------- Hand ---------- */
+.hand-area {
+  background: #00000030;
+  border-radius: 16px 16px 0 0;
+  padding: 14px 10px 16px;
+}
+
+.hand {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-left: 24px;
+  min-height: calc(var(--card-h) + 16px);
+}
+
+.card {
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: 6px;
+  background: #fff;
+  border: none;
+  padding: 0;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  margin-left: -24px;
+  transition: transform 0.1s;
+  position: relative;
+  overflow: hidden;
+}
+
+.card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hand .card:hover {
+  transform: translateY(-8px);
+  z-index: 2;
+}
+
+.card.selected {
+  transform: translateY(-16px);
+  outline: 3px solid var(--gold);
+  z-index: 3;
+}
+
+.card.selected:hover {
+  transform: translateY(-16px);
+}
+
+.card.small {
+  width: 44px;
+  height: 62px;
+  margin-left: 0;
+  cursor: default;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.controls .btn {
+  min-width: 120px;
+}
+
+/* ---------- Round end ---------- */
+.round-end {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+
+.round-end h2 {
+  color: var(--gold);
+}
+
+.results {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 1.05rem;
+}
+
+.medal {
+  display: inline-block;
+  width: 28px;
+}
+
+.wins {
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --card-w: 46px;
+    --card-h: 68px;
+  }
+
+  .seat {
+    min-width: 100px;
+    padding: 8px 10px;
+  }
+}
