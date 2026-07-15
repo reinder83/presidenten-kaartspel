@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { Card } from './cards.js';
-import { Game, Phase, Role } from './game.js';
+import { Game, LogEntry, Phase, Role } from './game.js';
 import { botChoosePlay, botChooseReturn } from './bot.js';
 
 export interface Seat {
@@ -39,6 +39,7 @@ export interface GameView {
   gave: Card[];
   finishOrder: number[];
   lastEvent: string;
+  log: LogEntry[];
 }
 
 const BOT_NAMES = ['Willem', 'Máxima', 'Beatrix', 'Juliana', 'Bernhard', 'Amalia', 'Claus'];
@@ -170,6 +171,7 @@ export class Room {
       gave: g.players[youIdx]?.gave ?? [],
       finishOrder: g.finishOrder,
       lastEvent: g.lastEvent,
+      log: g.log.slice(-60),
     };
   }
 

@@ -83,6 +83,13 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     noticeLeft: '{name} heeft het spel verlaten — een bot speelt verder.',
     noticeDisconnected: '{name} is de verbinding verloren — een bot speelt verder.',
     noticeReturned: '{name} doet weer zelf mee.',
+    logTitle: 'Verloop',
+    logToggle: '📜 Verloop',
+    logRound: '— Ronde {n} —',
+    logPlay: '{name} speelt {cards}',
+    logPass: '{name} past',
+    logWon: '{name} wint de slag',
+    logDone: '{name} is klaar (#{pos})',
   },
   en: {
     tagline: 'The card game — become president, avoid the scum!',
@@ -163,6 +170,13 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     noticeLeft: '{name} left the game — a bot plays on.',
     noticeDisconnected: '{name} lost their connection — a bot plays on.',
     noticeReturned: '{name} is back in control.',
+    logTitle: 'History',
+    logToggle: '📜 History',
+    logRound: '— Round {n} —',
+    logPlay: '{name} plays {cards}',
+    logPass: '{name} passes',
+    logWon: '{name} wins the trick',
+    logDone: '{name} is done (#{pos})',
   },
 };
 

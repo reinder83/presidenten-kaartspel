@@ -3,6 +3,7 @@ import { socket } from './socket';
 import {
   Card as CardT,
   GameView,
+  LogEntry,
   Role,
   RoomView,
   SUIT_SYMBOLS,
@@ -247,6 +248,14 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
   const t = useT();
   const g = room.game!;
   const [selected, setSelected] = useState<string[]>([]);
+  const [showLog, setShowLog] = useState(() => localStorage.getItem('presidenten-log') === '1');
+
+  const toggleLog = () => {
+    setShowLog((v) => {
+      localStorage.setItem('presidenten-log', v ? '0' : '1');
+      return !v;
+    });
+  };
 
   // Clear the selection whenever our hand changes (a play/round happened).
   const handKey = g.hand.map((c) => c.id).join(',');
@@ -322,6 +331,9 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
       <header className="game-header">
         <span className="room-code">{t('headerRoom', { code: room.code, round: g.roundNumber })}</span>
         <span className="header-right">
+          <button className={`btn small log-toggle ${showLog ? 'on' : ''}`} onClick={toggleLog}>
+            {t('logToggle')}
+          </button>
           <LangSwitch />
           <button className="btn subtle small" onClick={onLeave}>
             {t('leave')}
@@ -379,6 +391,8 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
 
       <ExchangeBanner g={g} />
 
+      {showLog && <LogPanel g={g} />}
+
       <div className={`hand-area ${isMyTurn || inExchange ? 'active' : ''}`}>
         <div className="hand">
           {g.hand.map((c) => {
@@ -426,6 +440,50 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
             </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Scrollable history of everything that was played, newest at the bottom. */
+function LogPanel({ g }: { g: GameView }) {
+  const t = useT();
+  const { lang } = useLang();
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [g.log.length]);
+
+  const cardNames = (cards: CardT[]) =>
+    cards.map((c) => `${rankLabel(c.r, lang)}${SUIT_SYMBOLS[c.s]}`).join(' ');
+
+  const line = (e: LogEntry) => {
+    const name = e.by !== undefined ? g.players[e.by]?.name ?? '?' : '';
+    switch (e.t) {
+      case 'round':
+        return t('logRound', { n: e.n! });
+      case 'play':
+        return t('logPlay', { name, cards: cardNames(e.cards ?? []) });
+      case 'pass':
+        return t('logPass', { name });
+      case 'won':
+        return t('logWon', { name });
+      case 'done':
+        return t('logDone', { name, pos: e.pos! });
+    }
+  };
+
+  return (
+    <div className="log-panel">
+      <div className="log-title">{t('logTitle')}</div>
+      <div className="log-body" ref={bodyRef}>
+        {g.log.map((e, i) => (
+          <div key={i} className={`log-entry ${e.t === 'round' ? 'log-round' : ''} ${e.t === 'won' || e.t === 'done' ? 'log-strong' : ''}`}>
+            {line(e)}
+          </div>
+        ))}
       </div>
     </div>
   );

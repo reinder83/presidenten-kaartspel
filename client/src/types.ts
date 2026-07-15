@@ -31,6 +31,14 @@ export function roleForFinishPos(pos: number, numPlayers: number): Role {
   return 'burger';
 }
 
+export interface LogEntry {
+  t: 'round' | 'play' | 'pass' | 'won' | 'done';
+  by?: number;
+  cards?: Card[];
+  pos?: number;
+  n?: number;
+}
+
 export interface GameView {
   phase: Phase;
   roundNumber: number;
@@ -44,6 +52,7 @@ export interface GameView {
   gave: Card[];
   finishOrder: number[];
   lastEvent: string;
+  log: LogEntry[];
 }
 
 export interface SeatView {

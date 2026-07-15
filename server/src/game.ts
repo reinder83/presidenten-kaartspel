@@ -29,6 +29,16 @@ export interface PlayResult {
   params?: Record<string, string | number>;
 }
 
+export interface LogEntry {
+  t: 'round' | 'play' | 'pass' | 'won' | 'done';
+  by?: number;
+  cards?: Card[];
+  pos?: number;
+  n?: number;
+}
+
+const LOG_LIMIT = 200;
+
 /**
  * Presidenten (Dutch "President" card game) rules engine.
  *
@@ -51,6 +61,8 @@ export class Game {
   trick: TrickPlay[] = [];
   finishOrder: number[] = [];
   lastEvent = '';
+  /** Human-readable game history (capped) */
+  log: LogEntry[] = [];
 
   constructor(public numPlayers: number) {
     for (let i = 0; i < numPlayers; i++) {
@@ -61,6 +73,12 @@ export class Game {
     this.turn = this.players.findIndex((p) => p.hand.some((c) => c.id === '3C'));
     if (this.turn < 0) this.turn = 0;
     this.phase = 'playing';
+    this.addLog({ t: 'round', n: 1 });
+  }
+
+  private addLog(entry: LogEntry) {
+    this.log.push(entry);
+    if (this.log.length > LOG_LIMIT) this.log.shift();
   }
 
   private deal() {
@@ -131,10 +149,12 @@ export class Game {
     player.hand = player.hand.filter((c) => !cardIds.includes(c.id));
     this.trick.push({ by: playerIdx, cards });
     this.lastEvent = '';
+    this.addLog({ t: 'play', by: playerIdx, cards });
 
     if (player.hand.length === 0) {
       player.finished = this.finishOrder.length;
       this.finishOrder.push(playerIdx);
+      this.addLog({ t: 'done', by: playerIdx, pos: player.finished + 1 });
     }
 
     if (this.remainingActive() <= 1) {
@@ -162,6 +182,7 @@ export class Game {
     if (playerIdx !== this.turn) return { ok: false, error: 'errNotYourTurn' };
     if (!this.topPlay) return { ok: false, error: 'errLeaderCannotPass' };
     this.players[playerIdx].passed = true;
+    this.addLog({ t: 'pass', by: playerIdx });
 
     const lastBy = this.topPlay.by;
     if (this.othersAllPassed(lastBy)) {
@@ -182,6 +203,7 @@ export class Game {
   private clearTrick(winnerIdx: number) {
     this.players.forEach((p) => (p.passed = false));
     this.trick = [];
+    this.addLog({ t: 'won', by: winnerIdx });
     // Winner leads; if they finished with their last play, the next active player leads.
     this.turn = this.isActive(winnerIdx) ? winnerIdx : this.nextActive(winnerIdx, false);
     this.lastEvent = 'trickCleared';
@@ -197,6 +219,7 @@ export class Game {
     if (last >= 0) {
       this.players[last].finished = this.finishOrder.length;
       this.finishOrder.push(last);
+      this.addLog({ t: 'done', by: last, pos: this.finishOrder.length });
     }
     this.assignRoles();
     this.phase = 'roundEnd';
@@ -223,6 +246,7 @@ export class Game {
   nextRound() {
     this.roundNumber++;
     this.deal();
+    this.addLog({ t: 'round', n: this.roundNumber });
 
     const pres = this.roleIdx('president');
     const foet = this.roleIdx('foet');
