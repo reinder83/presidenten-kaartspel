@@ -38,6 +38,21 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
+.toast.info {
+  background: #2c5f8a;
+  top: 60px;
+}
+
+.bot-takeover {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--gold);
+  background: #00000033;
+  border-radius: 10px;
+  padding: 2px 8px;
+  display: inline-block;
+}
+
 /* ---------- Lobby ---------- */
 .lobby {
   max-width: 380px;

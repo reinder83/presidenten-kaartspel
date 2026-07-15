@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { socket } from './socket';
 import {
   Card as CardT,
@@ -12,7 +12,10 @@ import {
 export default function App() {
   const [room, setRoom] = useState<RoomView | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [connected, setConnected] = useState(socket.connected);
+  const roomRef = useRef<RoomView | null>(null);
+  roomRef.current = room;
 
   useEffect(() => {
     const onRoom = (r: RoomView) => setRoom(r);
@@ -20,17 +23,40 @@ export default function App() {
       setError(msg);
       setTimeout(() => setError(null), 4000);
     };
-    const onConnect = () => setConnected(true);
+    const onNotice = (msg: string) => {
+      setNotice(msg);
+      setTimeout(() => setNotice(null), 5000);
+    };
+    const onConnect = () => {
+      setConnected(true);
+      // After a reconnect the server sees a brand-new connection: reclaim our seat.
+      const r = roomRef.current;
+      if (r) {
+        socket.emit('joinRoom', {
+          code: r.code,
+          name: localStorage.getItem('presidenten-name') ?? 'Speler',
+        });
+      }
+    };
     const onDisconnect = () => setConnected(false);
+    const onRoomGone = () => {
+      setRoom(null);
+      setError('De kamer bestaat niet meer.');
+      setTimeout(() => setError(null), 4000);
+    };
     socket.on('room', onRoom);
     socket.on('errorMsg', onError);
+    socket.on('notice', onNotice);
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on('roomGone', onRoomGone);
     return () => {
       socket.off('room', onRoom);
       socket.off('errorMsg', onError);
+      socket.off('notice', onNotice);
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('roomGone', onRoomGone);
     };
   }, []);
 
@@ -42,6 +68,7 @@ export default function App() {
   return (
     <div className="app">
       {error && <div className="toast">{error}</div>}
+      {notice && <div className="toast info">{notice}</div>}
       {!connected && <div className="toast">Verbinding met de server verbroken…</div>}
       {!room ? (
         <Lobby />
@@ -235,6 +262,9 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
               )}
               {p.passed && <span className="passed">gepast</span>}
             </div>
+            {!p.isBot && !p.connected && (
+              <div className="bot-takeover">🤖 bot speelt verder</div>
+            )}
           </div>
         ))}
       </div>

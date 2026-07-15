@@ -107,6 +107,11 @@ export class Room {
     this.scheduleBots();
   }
 
+  /** Show an informational message to everyone in the room. */
+  notice(message: string) {
+    this.io.to(this.code).emit('notice', message);
+  }
+
   /** Send each connected player their personalised view of the game. */
   broadcast() {
     for (const seat of this.seats) {

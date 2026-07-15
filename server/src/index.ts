@@ -55,12 +55,16 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('joinRoom', ({ code, name }: { code: string; name: string }) => {
     const target = rooms.get(String(code));
-    if (!target) return fail('Kamer niet gevonden.');
+    if (!target) {
+      socket.emit('roomGone');
+      return fail('Kamer niet gevonden.');
+    }
     room = target;
     const existing = room.seatByToken(token);
     if (existing >= 0) {
       // Reconnect to an existing seat.
       room.seats[existing].socketId = socket.id;
+      if (room.game) room.notice(`${room.seats[existing].name} doet weer zelf mee.`);
     } else {
       if (room.game) return fail('Het spel is al begonnen.');
       if (room.seats.length >= 6) return fail('De kamer is vol.');
@@ -140,6 +144,7 @@ io.on('connection', (socket: Socket) => {
     if (idx >= 0) {
       if (room.game) {
         room.seats[idx].socketId = null; // keep the seat; a bot plays on
+        room.notice(`${room.seats[idx].name} heeft het spel verlaten — een bot speelt verder.`);
       } else {
         room.removeSeat(idx);
       }
@@ -164,6 +169,8 @@ io.on('connection', (socket: Socket) => {
       room.seats[idx].socketId = null;
       if (!room.game) {
         room.removeSeat(idx);
+      } else {
+        room.notice(`${room.seats[idx].name} is de verbinding verloren — een bot speelt verder.`);
       }
     }
     if (room.isEmpty) {
