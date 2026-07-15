@@ -6,19 +6,27 @@ De volledige spelregels staan in [SPELREGELS.md](SPELREGELS.md).
 
 ## Runnen met Docker (aanbevolen)
 
+Elke push naar `main` bouwt via GitHub Actions automatisch een image (amd64 + arm64) op
+`ghcr.io/reinder83/presidenten-kaartspel:latest`. Je hoeft dus niets zelf te bouwen:
+
+```bash
+docker run -d -p 3000:3000 --name presidenten ghcr.io/reinder83/presidenten-kaartspel:latest
+```
+
+Of met compose (gebruikt dezelfde image):
+
 ```bash
 git clone git@github.com:reinder83/presidenten-kaartspel.git
 cd presidenten-kaartspel
-docker compose up --build
+docker compose up -d
 ```
 
-Open daarna <http://localhost:3000>.
+Open daarna <http://localhost:3000>. Updaten naar de nieuwste versie: `docker compose pull && docker compose up -d`.
 
-Zonder compose kan het ook direct:
+Zelf bouwen kan ook:
 
 ```bash
-docker build -t presidenten .
-docker run -d -p 3000:3000 --name presidenten presidenten
+docker compose -f docker-compose.build.yml up --build
 ```
 
 ### Multiplayer

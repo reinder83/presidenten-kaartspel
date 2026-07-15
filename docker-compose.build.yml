@@ -1,6 +1,8 @@
+# Zelf lokaal bouwen in plaats van de kant-en-klare image van ghcr.io gebruiken:
+#   docker compose -f docker-compose.build.yml up --build
 services:
   presidenten:
-    image: ghcr.io/reinder83/presidenten-kaartspel:latest
+    build: .
     ports:
       - "3000:3000"
     restart: unless-stopped
