@@ -90,6 +90,7 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     logPass: '{name} past',
     logWon: '{name} wint de slag',
     logDone: '{name} is klaar (#{pos})',
+    colTotal: 'Totaal',
   },
   en: {
     tagline: 'The card game — become president, avoid the scum!',
@@ -177,6 +178,7 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     logPass: '{name} passes',
     logWon: '{name} wins the trick',
     logDone: '{name} is done (#{pos})',
+    colTotal: 'Total',
   },
 };
 

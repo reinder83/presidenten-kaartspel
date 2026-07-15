@@ -528,6 +528,17 @@ function ExchangeBanner({ g }: { g: GameView }) {
   );
 }
 
+/** Points awarded per achieved role; the standings sum these up. */
+const SCORE_PER_ROLE: Record<Role, number> = {
+  president: 2,
+  'vice-president': 1,
+  burger: 0,
+  'vice-foet': -1,
+  foet: -2,
+};
+
+const fmtPts = (v: number) => (v > 0 ? `+${v}` : String(v));
+
 function RoundEnd({ g }: { g: GameView }) {
   const t = useT();
   const n = g.players.length;
@@ -542,6 +553,15 @@ function RoundEnd({ g }: { g: GameView }) {
     'vice-foet': 'colViceFoet',
     foet: 'colFoet',
   };
+
+  const totalScore = (p: (typeof g.players)[number]) =>
+    columns.reduce((sum, r) => sum + (p.roleCounts[r] ?? 0) * SCORE_PER_ROLE[r], 0);
+  const standings = [...g.players].sort(
+    (a, b) =>
+      totalScore(b) - totalScore(a) ||
+      (b.roleCounts.president ?? 0) - (a.roleCounts.president ?? 0) ||
+      a.name.localeCompare(b.name)
+  );
 
   return (
     <div className="round-end">
@@ -563,17 +583,22 @@ function RoundEnd({ g }: { g: GameView }) {
           <tr>
             <th></th>
             {columns.map((r) => (
-              <th key={r}>{t(colKeys[r])}</th>
+              <th key={r}>
+                {t(colKeys[r])}
+                <span className="pts">{fmtPts(SCORE_PER_ROLE[r])}</span>
+              </th>
             ))}
+            <th className="col-total">{t('colTotal')}</th>
           </tr>
         </thead>
         <tbody>
-          {g.players.map((p) => (
+          {standings.map((p) => (
             <tr key={p.id}>
               <td className="stats-name">{p.name}</td>
               {columns.map((r) => (
                 <td key={r}>{p.roleCounts[r] ?? 0}</td>
               ))}
+              <td className="total">{totalScore(p)}</td>
             </tr>
           ))}
         </tbody>
