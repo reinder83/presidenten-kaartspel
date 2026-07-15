@@ -10,9 +10,9 @@ Elke push naar `main` bouwt via GitHub Actions automatisch een image (amd64 + ar
 `ghcr.io/reinder83/presidenten-kaartspel:latest`. Je hoeft dus niets zelf te bouwen — en ook
 niets te clonen.
 
-### Met docker compose (zonder git clone)
+### Docker compose
 
-Maak ergens een `docker-compose.yml` met deze inhoud:
+Maak een `docker-compose.yml` met deze inhoud:
 
 ```yaml
 services:
