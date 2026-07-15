@@ -60,17 +60,4 @@ export interface RoomView {
   game: GameView | null;
 }
 
-export const ROLE_LABELS: Record<Role, string> = {
-  president: 'President',
-  'vice-president': 'Vice-president',
-  burger: 'Burger',
-  'vice-foet': 'Vice-foet',
-  foet: 'Foet',
-};
-
-export function rankLabel(r: number): string {
-  if (r <= 10) return String(r);
-  return ({ 11: 'B', 12: 'V', 13: 'H', 14: 'A', 15: '2' } as Record<number, string>)[r];
-}
-
 export const SUIT_SYMBOLS: Record<Suit, string> = { S: '♠', H: '♥', D: '♦', C: '♣' };

@@ -86,8 +86,8 @@ export class Room {
   }
 
   startGame(): string | null {
-    if (this.seats.length < 3) return 'Minimaal 3 spelers nodig (voeg bots toe).';
-    if (this.seats.length > 6) return 'Maximaal 6 spelers.';
+    if (this.seats.length < 3) return 'errMinPlayers';
+    if (this.seats.length > 6) return 'errMaxPlayers';
     this.game = new Game(this.seats.length);
     this.roundRecorded = false;
     this.broadcast();
@@ -110,8 +110,8 @@ export class Room {
   }
 
   /** Show an informational message to everyone in the room. */
-  notice(message: string) {
-    this.io.to(this.code).emit('notice', message);
+  notice(key: string, params?: Record<string, string | number>) {
+    this.io.to(this.code).emit('notice', { key, params });
   }
 
   /** Once per round, tally the achieved roles into the seat statistics. */

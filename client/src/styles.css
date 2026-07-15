@@ -137,6 +137,34 @@ body {
   font-size: 0.9rem;
 }
 
+.lang-switch {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.lang-switch button {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #ffffff22;
+  color: #fff;
+}
+
+.lang-switch button.on {
+  background: var(--gold);
+  color: #3a2c00;
+}
+
+.header-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .player-count {
   display: flex;
   gap: 8px;

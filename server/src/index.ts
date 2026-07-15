@@ -40,7 +40,8 @@ io.on('connection', (socket: Socket) => {
 
   const mySeatIdx = () => (room ? room.seatByToken(token) : -1);
 
-  const fail = (message: string) => socket.emit('errorMsg', message);
+  const fail = (key: string, params?: Record<string, string | number>) =>
+    socket.emit('errorMsg', { key, params });
 
   socket.on('createRoom', ({ name, bots }: { name: string; bots?: number }) => {
     const code = newRoomCode();
@@ -57,17 +58,17 @@ io.on('connection', (socket: Socket) => {
     const target = rooms.get(String(code));
     if (!target) {
       socket.emit('roomGone');
-      return fail('Kamer niet gevonden.');
+      return fail('errRoomNotFound');
     }
     room = target;
     const existing = room.seatByToken(token);
     if (existing >= 0) {
       // Reconnect to an existing seat.
       room.seats[existing].socketId = socket.id;
-      if (room.game) room.notice(`${room.seats[existing].name} doet weer zelf mee.`);
+      if (room.game) room.notice('noticeReturned', { name: room.seats[existing].name });
     } else {
-      if (room.game) return fail('Het spel is al begonnen.');
-      if (room.seats.length >= 6) return fail('De kamer is vol.');
+      if (room.game) return fail('errGameStarted');
+      if (room.seats.length >= 6) return fail('errRoomFull');
       room.addHuman(cleanName(name), token, socket.id);
     }
     socket.join(room.code);
@@ -77,14 +78,14 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('addBot', () => {
     if (!room || room.game) return;
-    if (room.hostToken !== token) return fail('Alleen de host kan bots toevoegen.');
-    if (!room.addBot()) return fail('De kamer is vol.');
+    if (room.hostToken !== token) return fail('errHostOnly');
+    if (!room.addBot()) return fail('errRoomFull');
     room.broadcast();
   });
 
   socket.on('removeBot', () => {
     if (!room || room.game) return;
-    if (room.hostToken !== token) return fail('Alleen de host kan bots verwijderen.');
+    if (room.hostToken !== token) return fail('errHostOnly');
     for (let i = room.seats.length - 1; i >= 0; i--) {
       if (room.seats[i].isBot) {
         room.removeSeat(i);
@@ -96,7 +97,7 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('startGame', () => {
     if (!room) return;
-    if (room.hostToken !== token) return fail('Alleen de host kan starten.');
+    if (room.hostToken !== token) return fail('errHostOnly');
     if (room.game) return;
     const err = room.startGame();
     if (err) fail(err);
@@ -107,7 +108,7 @@ io.on('connection', (socket: Socket) => {
     const idx = mySeatIdx();
     if (idx < 0) return;
     const result = room.game.play(idx, Array.isArray(cards) ? cards.map(String) : []);
-    if (!result.ok) return fail(result.error!);
+    if (!result.ok) return fail(result.error!, result.params);
     room.broadcast();
     room.scheduleBots();
   });
@@ -117,7 +118,7 @@ io.on('connection', (socket: Socket) => {
     const idx = mySeatIdx();
     if (idx < 0) return;
     const result = room.game.pass(idx);
-    if (!result.ok) return fail(result.error!);
+    if (!result.ok) return fail(result.error!, result.params);
     room.broadcast();
     room.scheduleBots();
   });
@@ -127,7 +128,7 @@ io.on('connection', (socket: Socket) => {
     const idx = mySeatIdx();
     if (idx < 0) return;
     const result = room.game.returnCards(idx, Array.isArray(cards) ? cards.map(String) : []);
-    if (!result.ok) return fail(result.error!);
+    if (!result.ok) return fail(result.error!, result.params);
     room.broadcast();
     room.scheduleBots();
   });
@@ -144,7 +145,7 @@ io.on('connection', (socket: Socket) => {
     if (idx >= 0) {
       if (room.game) {
         room.seats[idx].socketId = null; // keep the seat; a bot plays on
-        room.notice(`${room.seats[idx].name} heeft het spel verlaten — een bot speelt verder.`);
+        room.notice('noticeLeft', { name: room.seats[idx].name });
       } else {
         room.removeSeat(idx);
       }
@@ -170,7 +171,7 @@ io.on('connection', (socket: Socket) => {
       if (!room.game) {
         room.removeSeat(idx);
       } else {
-        room.notice(`${room.seats[idx].name} is de verbinding verloren — een bot speelt verder.`);
+        room.notice('noticeDisconnected', { name: room.seats[idx].name });
       }
     }
     if (room.isEmpty) {

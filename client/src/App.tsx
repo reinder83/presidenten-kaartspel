@@ -3,29 +3,45 @@ import { socket } from './socket';
 import {
   Card as CardT,
   GameView,
-  ROLE_LABELS,
   Role,
   RoomView,
   SUIT_SYMBOLS,
-  rankLabel,
   roleForFinishPos,
 } from './types';
+import {
+  Lang,
+  LangContext,
+  ServerMessage,
+  detectLang,
+  rankLabel,
+  roleKey,
+  useLang,
+  useT,
+} from './i18n';
+
+type Toast = ServerMessage | string;
 
 export default function App() {
   const [room, setRoom] = useState<RoomView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<Toast | null>(null);
+  const [notice, setNotice] = useState<Toast | null>(null);
   const [connected, setConnected] = useState(socket.connected);
+  const [lang, setLangState] = useState<Lang>(detectLang);
   const roomRef = useRef<RoomView | null>(null);
   roomRef.current = room;
 
+  const setLang = (l: Lang) => {
+    localStorage.setItem('presidenten-lang', l);
+    setLangState(l);
+  };
+
   useEffect(() => {
     const onRoom = (r: RoomView) => setRoom(r);
-    const onError = (msg: string) => {
+    const onError = (msg: Toast) => {
       setError(msg);
       setTimeout(() => setError(null), 4000);
     };
-    const onNotice = (msg: string) => {
+    const onNotice = (msg: Toast) => {
       setNotice(msg);
       setTimeout(() => setNotice(null), 5000);
     };
@@ -43,7 +59,7 @@ export default function App() {
     const onDisconnect = () => setConnected(false);
     const onRoomGone = () => {
       setRoom(null);
-      setError('De kamer bestaat niet meer.');
+      setError({ key: 'roomGone' });
       setTimeout(() => setError(null), 4000);
     };
     socket.on('room', onRoom);
@@ -68,22 +84,44 @@ export default function App() {
   };
 
   return (
-    <div className="app">
-      {error && <div className="toast">{error}</div>}
-      {notice && <div className="toast info">{notice}</div>}
-      {!connected && <div className="toast">Verbinding met de server verbroken…</div>}
-      {!room ? (
-        <Lobby />
-      ) : room.game ? (
-        <Game room={room} onLeave={leaveRoom} />
-      ) : (
-        <RoomLobby room={room} onLeave={leaveRoom} />
-      )}
+    <LangContext.Provider value={{ lang, setLang }}>
+      <div className="app">
+        {error && <ToastView toast={error} kind="" />}
+        {notice && <ToastView toast={notice} kind="info" />}
+        {!connected && <ToastView toast={{ key: 'connLost' }} kind="" />}
+        {!room ? (
+          <Lobby />
+        ) : room.game ? (
+          <Game room={room} onLeave={leaveRoom} />
+        ) : (
+          <RoomLobby room={room} onLeave={leaveRoom} />
+        )}
+      </div>
+    </LangContext.Provider>
+  );
+}
+
+function ToastView({ toast, kind }: { toast: Toast; kind: string }) {
+  const t = useT();
+  const text = typeof toast === 'string' ? toast : t(toast.key, toast.params);
+  return <div className={`toast ${kind}`}>{text}</div>;
+}
+
+function LangSwitch() {
+  const { lang, setLang } = useLang();
+  return (
+    <div className="lang-switch">
+      {(['nl', 'en'] as Lang[]).map((l) => (
+        <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>
+          {l.toUpperCase()}
+        </button>
+      ))}
     </div>
   );
 }
 
 function Lobby() {
+  const t = useT();
   const [name, setName] = useState(localStorage.getItem('presidenten-name') ?? '');
   const [code, setCode] = useState('');
   const [numPlayers, setNumPlayers] = useState(() => {
@@ -92,7 +130,7 @@ function Lobby() {
   });
 
   const saveName = () => {
-    const n = name.trim() || 'Speler';
+    const n = name.trim() || t('defaultName');
     localStorage.setItem('presidenten-name', n);
     return n;
   };
@@ -105,19 +143,20 @@ function Lobby() {
 
   return (
     <div className="lobby">
+      <LangSwitch />
       <h1>
         Presidenten <span className="suits">♠♥♦♣</span>
       </h1>
-      <p className="tagline">Het kaartspel — word president, vermijd de foet!</p>
+      <p className="tagline">{t('tagline')}</p>
       <input
         className="input"
-        placeholder="Je naam"
+        placeholder={t('yourName')}
         value={name}
         maxLength={20}
         onChange={(e) => setName(e.target.value)}
       />
       <div className="player-count">
-        <span className="player-count-label">Aantal spelers:</span>
+        <span className="player-count-label">{t('playerCount')}</span>
         {[3, 4, 5, 6].map((n) => (
           <button
             key={n}
@@ -129,16 +168,16 @@ function Lobby() {
         ))}
       </div>
       <button className="btn primary" onClick={quickPlay}>
-        🤖 Speel tegen de computer
+        {t('playVsComputer')}
       </button>
-      <div className="divider">— of multiplayer —</div>
+      <div className="divider">{t('orMultiplayer')}</div>
       <button className="btn" onClick={() => socket.emit('createRoom', { name: saveName(), bots: 0 })}>
-        Nieuwe kamer maken
+        {t('createRoom')}
       </button>
       <div className="join-row">
         <input
           className="input"
-          placeholder="Kamercode"
+          placeholder={t('roomCode')}
           value={code}
           maxLength={4}
           inputMode="numeric"
@@ -149,7 +188,7 @@ function Lobby() {
           disabled={code.length !== 4}
           onClick={() => socket.emit('joinRoom', { code, name: saveName() })}
         >
-          Meedoen
+          {t('join')}
         </button>
       </div>
     </div>
@@ -157,15 +196,17 @@ function Lobby() {
 }
 
 function RoomLobby({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
+  const t = useT();
   return (
     <div className="lobby">
-      <h1>Kamer {room.code}</h1>
-      <p className="tagline">Deel deze code met vrienden om mee te doen (3–6 spelers).</p>
+      <LangSwitch />
+      <h1>{t('roomTitle', { code: room.code })}</h1>
+      <p className="tagline">{t('shareCode')}</p>
       <ul className="seat-list">
         {room.seats.map((s) => (
           <li key={s.id}>
             {s.isBot ? '🤖' : '🧑'} {s.name}
-            {!s.isBot && !s.connected && ' (verbroken)'}
+            {!s.isBot && !s.connected && ` ${t('disconnected')}`}
           </li>
         ))}
       </ul>
@@ -173,32 +214,37 @@ function RoomLobby({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
         <>
           <div className="join-row">
             <button className="btn" onClick={() => socket.emit('addBot')} disabled={room.seats.length >= 6}>
-              + Bot
+              {t('addBot')}
             </button>
             <button
               className="btn"
               onClick={() => socket.emit('removeBot')}
               disabled={!room.seats.some((s) => s.isBot)}
             >
-              − Bot
+              {t('removeBot')}
             </button>
           </div>
-          <button className="btn primary" onClick={() => socket.emit('startGame')} disabled={room.seats.length < 3}>
-            Start het spel ({room.seats.length}/6)
+          <button
+            className="btn primary"
+            onClick={() => socket.emit('startGame')}
+            disabled={room.seats.length < 3}
+          >
+            {t('startGame', { n: room.seats.length })}
           </button>
-          {room.seats.length < 3 && <p className="hint">Minimaal 3 spelers — voeg bots toe of wacht op vrienden.</p>}
+          {room.seats.length < 3 && <p className="hint">{t('minPlayers')}</p>}
         </>
       ) : (
-        <p className="hint">Wachten tot de host het spel start…</p>
+        <p className="hint">{t('waitingHost')}</p>
       )}
       <button className="btn subtle" onClick={onLeave}>
-        Kamer verlaten
+        {t('leaveRoom')}
       </button>
     </div>
   );
 }
 
 function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
+  const t = useT();
   const g = room.game!;
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -259,21 +305,28 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
 
   const statusLine = () => {
     if (g.phase === 'exchange') {
-      if (inExchange) return `Kies ${g.mustReturn} kaart(en) om terug te geven.`;
-      return 'Kaarten worden geruild…';
+      if (inExchange) return t('statusExchangeChoose', { n: g.mustReturn });
+      return t('statusExchanging');
     }
-    if (g.phase === 'roundEnd') return 'Ronde afgelopen!';
-    if (isMyTurn) return top ? `Jouw beurt: speel ${top.cards.length} hogere kaart(en), of pas.` : 'Jouw beurt: kom uit met één of meer gelijke kaarten.';
-    return `${g.players[g.turn].name} is aan de beurt…`;
+    if (g.phase === 'roundEnd') return t('statusRoundOver');
+    if (isMyTurn) {
+      return top
+        ? t('statusYourTurnFollow', { n: top.cards.length })
+        : t('statusYourTurnLead');
+    }
+    return t('statusOtherTurn', { name: g.players[g.turn].name });
   };
 
   return (
     <div className="game">
       <header className="game-header">
-        <span className="room-code">Kamer {room.code} · Ronde {g.roundNumber}</span>
-        <button className="btn subtle small" onClick={onLeave}>
-          Verlaten
-        </button>
+        <span className="room-code">{t('headerRoom', { code: room.code, round: g.roundNumber })}</span>
+        <span className="header-right">
+          <LangSwitch />
+          <button className="btn subtle small" onClick={onLeave}>
+            {t('leave')}
+          </button>
+        </span>
       </header>
 
       <div className="opponents">
@@ -286,17 +339,15 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
               {p.isBot ? '🤖' : p.connected ? '🧑' : '📵'} {p.name}
             </div>
             <div className="seat-info">
-              {p.role && <span className={`role role-${p.role}`}>{ROLE_LABELS[p.role]}</span>}
+              {p.role && <span className={`role role-${p.role}`}>{t(roleKey(p.role))}</span>}
               {p.finishPos !== null ? (
-                <span className="finished">#{p.finishPos + 1} klaar</span>
+                <span className="finished">{t('finishedPos', { pos: p.finishPos + 1 })}</span>
               ) : (
                 <span className="cardcount">🂠 {p.cardCount}</span>
               )}
-              {p.passed && <span className="passed">gepast</span>}
+              {p.passed && <span className="passed">{t('passed')}</span>}
             </div>
-            {!p.isBot && !p.connected && (
-              <div className="bot-takeover">🤖 bot speelt verder</div>
-            )}
+            {!p.isBot && !p.connected && <div className="bot-takeover">{t('botPlaysOn')}</div>}
           </div>
         ))}
       </div>
@@ -305,9 +356,9 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
         {g.phase === 'roundEnd' ? (
           <RoundEnd g={g} />
         ) : g.phase === 'exchange' ? (
-          <div className="pile-empty">Ruilfase…</div>
+          <div className="pile-empty">{t('exchangePhase')}</div>
         ) : g.trick.length === 0 ? (
-          <div className="pile-empty">Nieuwe slag — {g.players[g.turn].name} komt uit</div>
+          <div className="pile-empty">{t('newTrick', { name: g.players[g.turn].name })}</div>
         ) : (
           <div className="trick">
             {g.trick.slice(-4).map((play, i, arr) => (
@@ -344,10 +395,11 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
           })}
           {g.hand.length === 0 && g.phase === 'playing' && (
             <div className="finished-self">
-              <div className="pile-empty">Je bent klaar! 🎉</div>
+              <div className="pile-empty">{t('youAreDone')}</div>
               {g.players[g.you].finishPos !== null && (
                 <div className="finished-role">
-                  Jouw rang: <b>{ROLE_LABELS[roleForFinishPos(g.players[g.you].finishPos!, g.players.length)]}</b>
+                  {t('yourRank')}{' '}
+                  <b>{t(roleKey(roleForFinishPos(g.players[g.you].finishPos!, g.players.length)))}</b>
                 </div>
               )}
             </div>
@@ -360,16 +412,16 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
               disabled={selected.length !== g.mustReturn}
               onClick={() => socket.emit('returnCards', { cards: selected })}
             >
-              Geef {g.mustReturn} kaart(en) terug
+              {t('giveBack', { n: g.mustReturn })}
             </button>
           )}
           {g.phase === 'playing' && (
             <>
               <button className="btn primary" disabled={!playLegal} onClick={() => socket.emit('playCards', { cards: selected })}>
-                Spelen
+                {t('play')}
               </button>
               <button className="btn" disabled={!isMyTurn || !top} onClick={() => socket.emit('pass')}>
-                Passen
+                {t('pass')}
               </button>
             </>
           )}
@@ -379,71 +431,81 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
   );
 }
 
-function cardNames(cards: { r: number; s: CardT['s'] }[]): string {
-  return cards.map((c) => `${rankLabel(c.r)}${SUIT_SYMBOLS[c.s]}`).join(' ');
-}
-
 /**
  * Shows what you gave/received in the exchange. Stays visible until the first
  * card of the round is played, so the foet also sees it when the exchange
  * itself finished instantly (bot president).
  */
 function ExchangeBanner({ g }: { g: GameView }) {
+  const t = useT();
+  const { lang } = useLang();
   if (g.gave.length === 0 && g.received.length === 0) return null;
   const nonePlayedYet = g.players.reduce((sum, p) => sum + p.cardCount, 0) === 52;
   if (g.phase !== 'exchange' && !(g.phase === 'playing' && nonePlayedYet)) return null;
 
+  const cardNames = (cards: { r: number; s: CardT['s'] }[]) =>
+    cards.map((c) => `${rankLabel(c.r, lang)}${SUIT_SYMBOLS[c.s]}`).join(' ');
+
   const role = g.players[g.you].role;
   const counterpart =
-    role === 'foet' ? 'de president'
-    : role === 'president' ? 'de foet'
-    : role === 'vice-foet' ? 'de vice-president'
-    : 'de vice-foet';
+    role === 'foet' ? t('thePresident')
+    : role === 'president' ? t('theFoet')
+    : role === 'vice-foet' ? t('theVicePresident')
+    : t('theViceFoet');
 
   return (
     <div className="received">
-      {g.gave.length > 0 && <span>Gegeven aan {counterpart}: <b>{cardNames(g.gave)}</b></span>}
+      {g.gave.length > 0 && (
+        <span>
+          {t('givenTo', { who: counterpart })} <b>{cardNames(g.gave)}</b>
+        </span>
+      )}
       {g.gave.length > 0 && g.received.length > 0 && ' · '}
-      {g.received.length > 0 && <span>Ontvangen: <b>{cardNames(g.received)}</b></span>}
+      {g.received.length > 0 && (
+        <span>
+          {t('received')} <b>{cardNames(g.received)}</b>
+        </span>
+      )}
     </div>
   );
 }
 
 function RoundEnd({ g }: { g: GameView }) {
+  const t = useT();
   const n = g.players.length;
   const columns: Role[] =
     n >= 4
       ? ['president', 'vice-president', 'burger', 'vice-foet', 'foet']
       : ['president', 'burger', 'foet'];
-  const shortLabel: Record<Role, string> = {
-    president: '👑 Pres.',
-    'vice-president': 'Vice-pres.',
-    burger: 'Burger',
-    'vice-foet': 'Vice-foet',
-    foet: '💩 Foet',
+  const colKeys: Record<Role, string> = {
+    president: 'colPresident',
+    'vice-president': 'colVicePresident',
+    burger: 'colBurger',
+    'vice-foet': 'colViceFoet',
+    foet: 'colFoet',
   };
 
   return (
     <div className="round-end">
-      <h2>Ronde {g.roundNumber} afgelopen</h2>
+      <h2>{t('roundOverTitle', { n: g.roundNumber })}</h2>
       <ol className="results">
         {g.finishOrder.map((idx, pos) => {
           const p = g.players[idx];
           return (
             <li key={p.id}>
               <span className="medal">{pos === 0 ? '👑' : pos === g.finishOrder.length - 1 ? '💩' : ''}</span>
-              {p.name} — {p.role ? ROLE_LABELS[p.role] : ''}
+              {p.name} — {p.role ? t(roleKey(p.role)) : ''}
             </li>
           );
         })}
       </ol>
       <table className="role-stats">
-        <caption>Totaalstand</caption>
+        <caption>{t('totals')}</caption>
         <thead>
           <tr>
             <th></th>
             {columns.map((r) => (
-              <th key={r}>{shortLabel[r]}</th>
+              <th key={r}>{t(colKeys[r])}</th>
             ))}
           </tr>
         </thead>
@@ -459,7 +521,7 @@ function RoundEnd({ g }: { g: GameView }) {
         </tbody>
       </table>
       <button className="btn primary" onClick={() => socket.emit('nextRound')}>
-        Volgende ronde
+        {t('nextRound')}
       </button>
     </div>
   );
@@ -497,7 +559,8 @@ function PlayingCard({
   onClick?: () => void;
   small?: boolean;
 }) {
-  const label = `${rankLabel(card.r)}${SUIT_SYMBOLS[card.s]}`;
+  const { lang } = useLang();
+  const label = `${rankLabel(card.r, lang)}${SUIT_SYMBOLS[card.s]}`;
   return (
     <button
       className={`card ${selected ? 'selected' : ''} ${small ? 'small' : ''} ${dimmed ? 'dimmed' : ''}`}

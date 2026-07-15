@@ -2,7 +2,9 @@
 
 Webversie van het Nederlandse kaartspel [Presidenten](https://nl.wikipedia.org/wiki/Presidenten_(kaartspel)) — speel multiplayer via een kamercode of solo tegen computerspelers.
 
-De volledige spelregels staan in [SPELREGELS.md](SPELREGELS.md).
+De volledige spelregels staan in [SPELREGELS.md](SPELREGELS.md). De interface is beschikbaar
+in het Nederlands en Engels — wissel van taal met de NL/EN-knoppen rechtsboven (standaard
+volgt hij de taal van je browser).
 
 ## Runnen met Docker (aanbevolen)
 

@@ -24,7 +24,9 @@ export interface GamePlayer {
 
 export interface PlayResult {
   ok: boolean;
+  /** Translation key; the client renders it in the user's language */
   error?: string;
+  params?: Record<string, string | number>;
 }
 
 /**
@@ -100,22 +102,22 @@ export class Game {
 
   /** Validate that `cards` are in the player's hand and form a legal play right now. */
   validatePlay(playerIdx: number, cardIds: string[]): PlayResult {
-    if (this.phase !== 'playing') return { ok: false, error: 'Het spel is niet bezig.' };
-    if (playerIdx !== this.turn) return { ok: false, error: 'Je bent niet aan de beurt.' };
+    if (this.phase !== 'playing') return { ok: false, error: 'errNotPlaying' };
+    if (playerIdx !== this.turn) return { ok: false, error: 'errNotYourTurn' };
     const hand = this.players[playerIdx].hand;
     const cards = cardIds.map((id) => hand.find((c) => c.id === id));
-    if (cards.some((c) => !c)) return { ok: false, error: 'Kaart niet in je hand.' };
-    if (new Set(cardIds).size !== cardIds.length) return { ok: false, error: 'Dubbele kaarten.' };
+    if (cards.some((c) => !c)) return { ok: false, error: 'errCardNotInHand' };
+    if (new Set(cardIds).size !== cardIds.length) return { ok: false, error: 'errDuplicateCards' };
     const set = cards as Card[];
-    if (set.length === 0) return { ok: false, error: 'Selecteer minstens één kaart.' };
-    if (!set.every((c) => c.r === set[0].r)) return { ok: false, error: 'Alle kaarten moeten dezelfde waarde hebben.' };
+    if (set.length === 0) return { ok: false, error: 'errSelectAtLeast' };
+    if (!set.every((c) => c.r === set[0].r)) return { ok: false, error: 'errSameRank' };
     const top = this.topPlay;
     if (top) {
       if (set.length !== top.cards.length) {
-        return { ok: false, error: `Je moet precies ${top.cards.length} kaart(en) spelen.` };
+        return { ok: false, error: 'errExactCount', params: { n: top.cards.length } };
       }
       if (set[0].r <= top.cards[0].r) {
-        return { ok: false, error: 'Je kaarten moeten hoger zijn.' };
+        return { ok: false, error: 'errMustBeHigher' };
       }
     }
     return { ok: true };
@@ -156,9 +158,9 @@ export class Game {
   }
 
   pass(playerIdx: number): PlayResult {
-    if (this.phase !== 'playing') return { ok: false, error: 'Het spel is niet bezig.' };
-    if (playerIdx !== this.turn) return { ok: false, error: 'Je bent niet aan de beurt.' };
-    if (!this.topPlay) return { ok: false, error: 'Je moet uitkomen, passen kan niet.' };
+    if (this.phase !== 'playing') return { ok: false, error: 'errNotPlaying' };
+    if (playerIdx !== this.turn) return { ok: false, error: 'errNotYourTurn' };
+    if (!this.topPlay) return { ok: false, error: 'errLeaderCannotPass' };
     this.players[playerIdx].passed = true;
 
     const lastBy = this.topPlay.by;
@@ -253,14 +255,14 @@ export class Game {
 
   /** President / vice-president returns cards of their choice to foet / vice-foet. */
   returnCards(playerIdx: number, cardIds: string[]): PlayResult {
-    if (this.phase !== 'exchange') return { ok: false, error: 'Er is nu geen ruilfase.' };
+    if (this.phase !== 'exchange') return { ok: false, error: 'errNoExchange' };
     const player = this.players[playerIdx];
-    if (player.mustReturn === 0) return { ok: false, error: 'Jij hoeft geen kaarten terug te geven.' };
+    if (player.mustReturn === 0) return { ok: false, error: 'errNothingToReturn' };
     if (cardIds.length !== player.mustReturn) {
-      return { ok: false, error: `Kies precies ${player.mustReturn} kaart(en).` };
+      return { ok: false, error: 'errChooseExact', params: { n: player.mustReturn } };
     }
     const cards = cardIds.map((id) => player.hand.find((c) => c.id === id));
-    if (cards.some((c) => !c)) return { ok: false, error: 'Kaart niet in je hand.' };
+    if (cards.some((c) => !c)) return { ok: false, error: 'errCardNotInHand' };
 
     const targetRole: Role = player.role === 'president' ? 'foet' : 'vice-foet';
     const target = this.players[this.roleIdx(targetRole)];
