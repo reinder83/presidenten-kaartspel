@@ -9,7 +9,8 @@ export interface Seat {
   name: string;
   isBot: boolean;
   socketId: string | null;
-  wins: number;
+  /** How often this seat finished as president, foet, etc. across rounds */
+  roleCounts: Partial<Record<Role, number>>;
 }
 
 export interface PlayerView {
@@ -22,7 +23,7 @@ export interface PlayerView {
   passed: boolean;
   finishPos: number | null;
   mustReturn: number;
-  wins: number;
+  roleCounts: Partial<Record<Role, number>>;
 }
 
 export interface GameView {
@@ -48,11 +49,12 @@ export class Room {
   game: Game | null = null;
   hostToken: string | null = null;
   private botTimer: ReturnType<typeof setTimeout> | null = null;
+  private roundRecorded = false;
 
   constructor(public code: string, private io: Server) {}
 
   addHuman(name: string, token: string, socketId: string): Seat {
-    const seat: Seat = { id: `p${this.seats.length}-${token.slice(0, 6)}`, token, name, isBot: false, socketId, wins: 0 };
+    const seat: Seat = { id: `p${this.seats.length}-${token.slice(0, 6)}`, token, name, isBot: false, socketId, roleCounts: {} };
     this.seats.push(seat);
     if (!this.hostToken) this.hostToken = token;
     return seat;
@@ -62,7 +64,7 @@ export class Room {
     if (this.seats.length >= 6) return null;
     const used = new Set(this.seats.map((s) => s.name));
     const name = BOT_NAMES.find((n) => !used.has(n)) ?? `Bot ${this.seats.length + 1}`;
-    const seat: Seat = { id: `bot-${this.seats.length}-${Math.random().toString(36).slice(2, 8)}`, token: '', name, isBot: true, socketId: null, wins: 0 };
+    const seat: Seat = { id: `bot-${this.seats.length}-${Math.random().toString(36).slice(2, 8)}`, token: '', name, isBot: true, socketId: null, roleCounts: {} };
     this.seats.push(seat);
     return seat;
   }
@@ -87,6 +89,7 @@ export class Room {
     if (this.seats.length < 3) return 'Minimaal 3 spelers nodig (voeg bots toe).';
     if (this.seats.length > 6) return 'Maximaal 6 spelers.';
     this.game = new Game(this.seats.length);
+    this.roundRecorded = false;
     this.broadcast();
     this.scheduleBots();
     return null;
@@ -94,8 +97,7 @@ export class Room {
 
   nextRound() {
     if (!this.game || this.game.phase !== 'roundEnd') return;
-    const winner = this.game.finishOrder[0];
-    if (winner !== undefined) this.seats[winner].wins++;
+    this.roundRecorded = false;
     this.game.nextRound();
     // Bots return exchange cards immediately.
     this.game.players.forEach((p, i) => {
@@ -112,8 +114,20 @@ export class Room {
     this.io.to(this.code).emit('notice', message);
   }
 
+  /** Once per round, tally the achieved roles into the seat statistics. */
+  private recordRoundIfEnded() {
+    if (!this.game || this.game.phase !== 'roundEnd' || this.roundRecorded) return;
+    this.roundRecorded = true;
+    this.game.players.forEach((p, i) => {
+      if (p.role) {
+        this.seats[i].roleCounts[p.role] = (this.seats[i].roleCounts[p.role] ?? 0) + 1;
+      }
+    });
+  }
+
   /** Send each connected player their personalised view of the game. */
   broadcast() {
+    this.recordRoundIfEnded();
     for (const seat of this.seats) {
       if (seat.socketId) {
         this.io.to(seat.socketId).emit('room', this.roomView(seat));
@@ -145,7 +159,7 @@ export class Room {
         passed: p.passed,
         finishPos: p.finished,
         mustReturn: p.mustReturn,
-        wins: this.seats[i].wins,
+        roleCounts: this.seats[i].roleCounts,
       })),
       you: youIdx,
       hand: g.players[youIdx]?.hand ?? [],

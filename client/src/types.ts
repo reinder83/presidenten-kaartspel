@@ -19,7 +19,16 @@ export interface PlayerView {
   passed: boolean;
   finishPos: number | null;
   mustReturn: number;
-  wins: number;
+  roleCounts: Partial<Record<Role, number>>;
+}
+
+/** The role a finish position will earn, mirroring the server's assignRoles. */
+export function roleForFinishPos(pos: number, numPlayers: number): Role {
+  if (pos === 0) return 'president';
+  if (pos === numPlayers - 1) return 'foet';
+  if (numPlayers >= 4 && pos === 1) return 'vice-president';
+  if (numPlayers >= 4 && pos === numPlayers - 2) return 'vice-foet';
+  return 'burger';
 }
 
 export interface GameView {

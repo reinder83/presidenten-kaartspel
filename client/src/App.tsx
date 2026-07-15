@@ -4,9 +4,11 @@ import {
   Card as CardT,
   GameView,
   ROLE_LABELS,
+  Role,
   RoomView,
   SUIT_SYMBOLS,
   rankLabel,
+  roleForFinishPos,
 } from './types';
 
 export default function App() {
@@ -214,6 +216,18 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
     });
   };
 
+  // Cards that can be part of a legal play right now; null = everything can.
+  const playableIds = useMemo(() => {
+    if (!isMyTurn || !top) return null;
+    const countByRank = new Map<number, number>();
+    g.hand.forEach((c) => countByRank.set(c.r, (countByRank.get(c.r) ?? 0) + 1));
+    const need = top.cards.length;
+    const topRank = top.cards[0].r;
+    return new Set(
+      g.hand.filter((c) => c.r > topRank && (countByRank.get(c.r) ?? 0) >= need).map((c) => c.id)
+    );
+  }, [isMyTurn, top, g.hand]);
+
   const selectedCards = g.hand.filter((c) => selected.includes(c.id));
   const playLegal = useMemo(() => {
     if (!isMyTurn || selectedCards.length === 0) return false;
@@ -297,18 +311,29 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
 
       <ExchangeBanner g={g} />
 
-      <div className="hand-area">
+      <div className={`hand-area ${isMyTurn || inExchange ? 'active' : ''}`}>
         <div className="hand">
-          {g.hand.map((c) => (
-            <PlayingCard
-              key={c.id}
-              card={c}
-              selected={selected.includes(c.id)}
-              onClick={() => (isMyTurn || inExchange) && toggleCard(c)}
-            />
-          ))}
+          {g.hand.map((c) => {
+            const dimmed = playableIds !== null && !playableIds.has(c.id);
+            return (
+              <PlayingCard
+                key={c.id}
+                card={c}
+                selected={selected.includes(c.id)}
+                dimmed={dimmed}
+                onClick={() => (isMyTurn || inExchange) && !dimmed && toggleCard(c)}
+              />
+            );
+          })}
           {g.hand.length === 0 && g.phase === 'playing' && (
-            <div className="pile-empty">Je bent klaar! 🎉</div>
+            <div className="finished-self">
+              <div className="pile-empty">Je bent klaar! 🎉</div>
+              {g.players[g.you].finishPos !== null && (
+                <div className="finished-role">
+                  Jouw rang: <b>{ROLE_LABELS[roleForFinishPos(g.players[g.you].finishPos!, g.players.length)]}</b>
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className="controls">
@@ -368,6 +393,19 @@ function ExchangeBanner({ g }: { g: GameView }) {
 }
 
 function RoundEnd({ g }: { g: GameView }) {
+  const n = g.players.length;
+  const columns: Role[] =
+    n >= 4
+      ? ['president', 'vice-president', 'burger', 'vice-foet', 'foet']
+      : ['president', 'burger', 'foet'];
+  const shortLabel: Record<Role, string> = {
+    president: '👑 Pres.',
+    'vice-president': 'Vice-pres.',
+    burger: 'Burger',
+    'vice-foet': 'Vice-foet',
+    foet: '💩 Foet',
+  };
+
   return (
     <div className="round-end">
       <h2>Ronde {g.roundNumber} afgelopen</h2>
@@ -378,11 +416,31 @@ function RoundEnd({ g }: { g: GameView }) {
             <li key={p.id}>
               <span className="medal">{pos === 0 ? '👑' : pos === g.finishOrder.length - 1 ? '💩' : ''}</span>
               {p.name} — {p.role ? ROLE_LABELS[p.role] : ''}
-              {p.wins > 0 && <span className="wins"> ({p.wins}× president)</span>}
             </li>
           );
         })}
       </ol>
+      <table className="role-stats">
+        <caption>Totaalstand</caption>
+        <thead>
+          <tr>
+            <th></th>
+            {columns.map((r) => (
+              <th key={r}>{shortLabel[r]}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {g.players.map((p) => (
+            <tr key={p.id}>
+              <td className="stats-name">{p.name}</td>
+              {columns.map((r) => (
+                <td key={r}>{p.roleCounts[r] ?? 0}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <button className="btn primary" onClick={() => socket.emit('nextRound')}>
         Volgende ronde
       </button>
@@ -412,21 +470,24 @@ function cardImage(card: CardT): string {
 function PlayingCard({
   card,
   selected,
+  dimmed,
   onClick,
   small,
 }: {
   card: CardT;
   selected?: boolean;
+  dimmed?: boolean;
   onClick?: () => void;
   small?: boolean;
 }) {
   const label = `${rankLabel(card.r)}${SUIT_SYMBOLS[card.s]}`;
   return (
     <button
-      className={`card ${selected ? 'selected' : ''} ${small ? 'small' : ''}`}
+      className={`card ${selected ? 'selected' : ''} ${small ? 'small' : ''} ${dimmed ? 'dimmed' : ''}`}
       onClick={onClick}
-      tabIndex={onClick ? 0 : -1}
+      tabIndex={onClick && !dimmed ? 0 : -1}
       aria-label={label}
+      aria-disabled={dimmed || undefined}
     >
       <img src={cardImage(card)} alt={label} draggable={false} />
     </button>
