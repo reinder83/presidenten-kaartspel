@@ -86,6 +86,10 @@ export default function App() {
 function Lobby() {
   const [name, setName] = useState(localStorage.getItem('presidenten-name') ?? '');
   const [code, setCode] = useState('');
+  const [numPlayers, setNumPlayers] = useState(() => {
+    const saved = Number(localStorage.getItem('presidenten-players'));
+    return saved >= 3 && saved <= 6 ? saved : 4;
+  });
 
   const saveName = () => {
     const n = name.trim() || 'Speler';
@@ -94,7 +98,8 @@ function Lobby() {
   };
 
   const quickPlay = () => {
-    socket.emit('createRoom', { name: saveName(), bots: 3 });
+    localStorage.setItem('presidenten-players', String(numPlayers));
+    socket.emit('createRoom', { name: saveName(), bots: numPlayers - 1 });
     socket.emit('startGame');
   };
 
@@ -111,6 +116,18 @@ function Lobby() {
         maxLength={20}
         onChange={(e) => setName(e.target.value)}
       />
+      <div className="player-count">
+        <span className="player-count-label">Aantal spelers:</span>
+        {[3, 4, 5, 6].map((n) => (
+          <button
+            key={n}
+            className={`btn count ${numPlayers === n ? 'on' : ''}`}
+            onClick={() => setNumPlayers(n)}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
       <button className="btn primary" onClick={quickPlay}>
         🤖 Speel tegen de computer
       </button>

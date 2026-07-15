@@ -137,6 +137,30 @@ body {
   font-size: 0.9rem;
 }
 
+.player-count {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.player-count-label {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  margin-right: 4px;
+}
+
+.btn.count {
+  padding: 8px 0;
+  width: 42px;
+  font-size: 1rem;
+}
+
+.btn.count.on {
+  background: var(--gold);
+  color: #3a2c00;
+}
+
 .join-row {
   display: flex;
   gap: 8px;
