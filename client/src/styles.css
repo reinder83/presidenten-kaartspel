@@ -383,15 +383,14 @@ body {
 }
 
 .card.small {
-  width: 44px;
-  height: 62px;
+  width: 60px;
+  height: 87px;
   margin-left: 0;
   cursor: default;
 }
 
 .card.dimmed {
-  opacity: 0.45;
-  filter: grayscale(0.6);
+  filter: grayscale(0.7) brightness(0.55);
   cursor: default;
 }
 
