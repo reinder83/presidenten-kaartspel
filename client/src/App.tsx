@@ -205,11 +205,12 @@ function Game({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
         const others = g.hand.filter((c) => c.r === card.r && c.id !== card.id);
         return [card.id, ...others.slice(0, need - 1).map((c) => c.id)];
       }
-      // Leading: build any set of one rank by hand.
+      // Leading: a click selects ALL cards of that rank at once; click a
+      // selected card again to take it out of the set (or re-add it later).
       if (sel.includes(card.id)) return sel.filter((id) => id !== card.id);
       const selCards = g.hand.filter((c) => sel.includes(c.id));
-      if (selCards.length && selCards[0].r !== card.r) return [card.id];
-      return [...sel, card.id];
+      if (selCards.length && selCards[0].r === card.r) return [...sel, card.id];
+      return g.hand.filter((c) => c.r === card.r).map((c) => c.id);
     });
   };
 
